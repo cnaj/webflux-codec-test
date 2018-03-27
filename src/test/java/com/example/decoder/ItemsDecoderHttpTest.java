@@ -34,6 +34,9 @@ import reactor.ipc.netty.http.server.HttpServer;
 @ContextConfiguration(classes = { ItemsConfiguration.class })
 public class ItemsDecoderHttpTest {
 
+    private static final int ITEM_COUNT = Integer
+            .parseInt(System.getProperty("itemCount", "100000"));
+
     @Autowired
     private ApplicationContext context;
 
@@ -71,7 +74,7 @@ public class ItemsDecoderHttpTest {
     @Test
     public void testBulkHttp() {
         Flux<Item> response = this.webClient.get() //
-                .uri("/items/1000")
+                .uri("/items/" + ITEM_COUNT)
                 .accept(MediaType.APPLICATION_JSON)
                 .exchange()
                 .flatMapMany(this::handleItemsResponse);

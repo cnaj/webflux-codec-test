@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Configuration monitorInterval="60">
+	<Appenders>
+		<Console name="STDOUT" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d %-5p [%c] [%t] %m%n"/>
+		</Console>
+	</Appenders>
+
+	<Loggers>
+		<Logger name="org.hibernate" level="WARN"/>
+		<Logger name="org.springframework" level="WARN"/>
+		<Logger name="org.springframework.web" level="WARN"/>
+		<Logger name="reactor.ipc.netty.http.client" level="INFO"/>
+		<Logger name="reactor.ipc.netty.http.server" level="INFO"/>
+
+		<Root level="INFO">
+			<AppenderRef ref="STDOUT"/>
+		</Root>
+	</Loggers>
+</Configuration>

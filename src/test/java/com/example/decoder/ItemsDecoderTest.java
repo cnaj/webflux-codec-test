@@ -24,6 +24,9 @@ import reactor.test.StepVerifier.Step;
 
 public class ItemsDecoderTest {
 
+    private static final int ITEM_COUNT = Integer
+            .parseInt(System.getProperty("itemCount", "100000"));
+
     private static final int MIN_CHUNK_SIZE = 10;
     private static final int MAX_CHUNK_SIZE = 60;
 
@@ -34,7 +37,7 @@ public class ItemsDecoderTest {
 
     @Test
     public void testBulk() {
-        List<Item> items = IntStream.range(0, 1000)
+        List<Item> items = IntStream.range(0, ITEM_COUNT)
                 .mapToObj(i -> UUID.randomUUID().toString())
                 .map(Item::new)
                 .collect(Collectors.toList());

@@ -29,6 +29,11 @@ public class ItemsConfiguration implements WebFluxConfigurer {
         return new ItemsEntity();
     }
 
+    @Bean
+    public ObjectMapper getObjectMapper() {
+        return this.objectMapper;
+    }
+
     @Override
     public void configureHttpMessageCodecs(ServerCodecConfigurer configurer) {
         configurer.defaultCodecs().jackson2JsonDecoder(
