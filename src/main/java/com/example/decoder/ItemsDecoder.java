@@ -30,8 +30,7 @@ public class ItemsDecoder {
             return Flux.error(e);
         }
 
-        return dataBuffers.concatMap(decoder::transform)
-                .concatWith(Mono.fromRunnable(decoder::endOfInput));
+        return dataBuffers.flatMap(decoder::transform, Flux::error, decoder::endOfInput);
     }
 
     private final ObjectMapper objectMapper;
@@ -74,9 +73,16 @@ public class ItemsDecoder {
         }
     }
 
-    private void endOfInput() {
-        if (this.state != State.FINISHED) {
-            throw new IllegalStateException("incomplete JSON input");
+    private Flux<Item> endOfInput() {
+        try {
+            Flux<Item> items = parseResponseData();
+            // items was prepared from List, so it's actually synchronous up to here
+            if (this.state != State.FINISHED) {
+                throw new IllegalStateException("incomplete JSON input");
+            }
+            return items;
+        } catch (IOException e) {
+            return Flux.error(e);
         }
     }
 
