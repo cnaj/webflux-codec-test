@@ -42,7 +42,6 @@ public class ItemsDecoder {
     private TokenBuffer tokenBuffer;
     private State state = State.START;
     private int depth;
-    private List<Item> result;
     private ErrorDetail error;
 
     private ItemsDecoder(ObjectMapper objectMapper) throws IOException {
@@ -87,30 +86,30 @@ public class ItemsDecoder {
     }
 
     private Flux<Item> parseResponseData() throws IOException {
-        this.result = new ArrayList<>();
+        List<Item> result = new ArrayList<>();
         while (true) {
             JsonToken token = this.parser.nextToken();
             if (token == null || token == JsonToken.NOT_AVAILABLE) {
                 break;
             }
 
-            this.state.next(this, token);
+            this.state.next(this, token, result);
         }
 
-        Flux<Item> flux = Flux.fromIterable(this.result);
+        Flux<Item> flux = Flux.fromIterable(result);
         if (this.error != null) {
             flux = flux.concatWith(Mono.error(new IllegalStateException(this.error.getMessage())));
         }
         return flux;
     }
 
-    private void readEntity() throws IOException {
+    private void readEntity(List<Item> result) throws IOException {
         TokenBuffer buffer = this.tokenBuffer;
         this.tokenBuffer = new TokenBuffer(this.parser);
 
         if (this.state == State.ITEMS) {
             Item item = this.itemsReader.readValue(buffer.asParser(this.objectMapper));
-            this.result.add(item);
+            result.add(item);
         }
         else if (this.state == State.ERROR) {
             ErrorDetail errorDetail = this.errorReader
@@ -125,7 +124,8 @@ public class ItemsDecoder {
     private enum State {
         START {
             @Override
-            void next(ItemsDecoder parent, JsonToken token) throws JsonParseException {
+            void next(ItemsDecoder parent, JsonToken token, List<Item> result)
+                    throws JsonParseException {
                 if (token != JsonToken.START_OBJECT) {
                     throw new JsonParseException(parent.parser, "expected top-level object");
                 }
@@ -134,7 +134,8 @@ public class ItemsDecoder {
         },
         TOPLEVEL {
             @Override
-            void next(ItemsDecoder parent, JsonToken token) throws JsonParseException, IOException {
+            void next(ItemsDecoder parent, JsonToken token, List<Item> result)
+                    throws JsonParseException, IOException {
                 if (token == JsonToken.END_OBJECT) {
                     parent.state = FINISHED;
                 }
@@ -157,27 +158,30 @@ public class ItemsDecoder {
         },
         ITEMS {
             @Override
-            void next(ItemsDecoder parent, JsonToken token) throws IOException {
-                readObjects(parent, token, true);
+            void next(ItemsDecoder parent, JsonToken token, List<Item> result) throws IOException {
+                readObjects(parent, token, true, result);
             }
 
         },
         ERROR {
             @Override
-            void next(ItemsDecoder parent, JsonToken token) throws IOException {
-                readObjects(parent, token, false);
+            void next(ItemsDecoder parent, JsonToken token, List<Item> result) throws IOException {
+                readObjects(parent, token, false, result);
             }
         },
         FINISHED {
             @Override
-            void next(ItemsDecoder parent, JsonToken token) throws JsonParseException {
+            void next(ItemsDecoder parent, JsonToken token, List<Item> result)
+                    throws JsonParseException {
                 throw new JsonParseException(parent.parser, "unexpected token");
             }
         };
 
-        abstract void next(ItemsDecoder parent, JsonToken token) throws IOException;
+        abstract void next(ItemsDecoder parent, JsonToken token, List<Item> result)
+                throws IOException;
 
-        private static void readObjects(ItemsDecoder parent, JsonToken token, boolean isArray)
+        private static void readObjects(ItemsDecoder parent, JsonToken token, boolean isArray,
+                List<Item> result)
                 throws IOException, JsonParseException {
             switch (token) {
             case START_OBJECT:
@@ -196,7 +200,7 @@ public class ItemsDecoder {
                 else {
                     if (--parent.depth == 0) {
                         parent.tokenBuffer.copyCurrentEvent(parent.parser);
-                        parent.readEntity();
+                        parent.readEntity(result);
                     }
                 }
                 break;
